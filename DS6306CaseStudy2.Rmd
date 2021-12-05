@@ -1,0 +1,155 @@
+---
+title: "Case Study 2"
+author: "Jeff Johnson"
+date: "11/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height=7, fig.width=12, fig.align="center")
+```
+
+## A Case Study on Attrition and other measures
+
+Greetings and please find in this document the means to predict monthly income and attrition with some additional analysis as well.
+
+```{r}
+
+
+#load libraries
+library(readr)
+library(ggplot2)
+library(plotly)
+library(GGally)
+library(class)
+library(caret)
+library(dplyr)
+library(e1071)
+
+#Load data
+BusinessData <- read.csv(file.choose())
+
+#Modify some columns for usage in models
+BusinessData$Attrition = as.factor(BusinessData$Attrition)
+BusinessData$MonthlyIncome = as.numeric(BusinessData$MonthlyIncome)
+BusinessData$MonthlyRate = as.numeric(BusinessData$MonthlyRate)
+BusinessData$TotalWorkingYears = as.numeric(BusinessData$TotalWorkingYears)
+BusinessData$PercentSalaryHike = as.numeric(BusinessData$PercentSalaryHike)
+BusinessData$OverTime = as.factor(BusinessData$OverTime)
+```
+
+## Some Useful Insights
+
+Here I have included some insights from the data.
+
+```{r}
+# show count of those that have left the company by job role
+BusinessData %>% filter(Attrition == "Yes") %>% group_by(JobRole) %>% summarise(count = n())
+
+#plot attrition by job role with those already gone
+p1 <- BusinessData %>% filter(Attrition == "Yes") %>% ggplot(aes(x = JobRole, fill = JobRole)) + geom_bar() + ggtitle("Attrition by Job Role")
+ggplotly(p1)
+
+```
+The Job Roles with the highest attrition are Sales Executive, Research Scientist and Laboratory Technician. The lowest are Research Director, Manufacturing Director and Manager.
+
+```{r}
+# plot attrition by job role with those both here and gone
+p2 <- BusinessData %>% ggplot(aes(x = JobRole, fill = Attrition)) + geom_bar() + ggtitle("Attrition by Job Role")
+ggplotly(p2)
+
+```
+We can see in the above plot the percent of those that have left and chosen to stay.
+
+
+```{r}
+# plot Attrition by Gender with those that have already left
+p3 <- BusinessData %>% filter(Attrition == "Yes") %>% ggplot(aes(x = Gender, fill = Gender)) + geom_bar() + ggtitle("Attrition by Gender")
+ggplotly(p3)
+
+```
+Attrition is highest in males, with 62% of those in the dataset leaving the company being Male.
+
+```{r}
+# plot for Monthly Income by Job Role featuring Attrition
+BusinessData %>% ggplot(aes(x = MonthlyIncome, y = JobRole, color = Attrition)) + geom_boxplot() + ggtitle("Monthly Income by Job Role and Attrition")
+
+```
+We can see here that those in the lower range of monthly income might be leaving due to a discrepancy in pay.
+
+
+```{r}
+# plot for overtime employees to show high percentage of overtime employees having left
+p4 <- BusinessData %>% ggplot(aes(x = OverTime, fill = Attrition)) + geom_bar() + ggtitle("Attrition by Exempt and Non-Exempt Employees")
+ggplotly(p4)
+
+
+```
+One of the 3 contributing factors to attrition I've found is those that are non-exempt are leaving at a higher rate.
+
+
+```{r}
+# plot monthly income vs total working years featuring attrition
+BusinessData %>% ggplot(aes(x = MonthlyIncome, y = TotalWorkingYears, color = Attrition)) + geom_point() + geom_smooth(method = 'lm', linetype = "dashed", color = "darkred", fill="blue") + ggtitle("Monthly Income vs Total Working Years with Attrition")
+
+```
+A positive correlation can be seen here between Monthly Income and Total Working Years, with a linear model thrown in.
+
+## Training and Test Set
+
+Here is the code for specifying the training and test sets to be used in the models (a 70/30 split).
+```{r}
+
+set.seed(6)
+sample_size=floor(0.7 * nrow(BusinessData)) #set sample size for training indices
+trainIndices=sample(seq_len(nrow(BusinessData)), size = sample_size) #set training indices for training set and inversely test
+attrition_train = BusinessData[trainIndices,] #create training set
+attrition_test = BusinessData[-trainIndices,] #create test set
+
+```
+
+## k-NN model
+
+Here is the k-NN model
+```{r}
+
+#k-NN model with k as square root of number of observations in training set
+#attrition_knn <- knn(attrition_train[,c(18, 20, 24)],attrition_test[,c(18, 20, 24)],attrition_train$Attrition,k=sqrt(nrow(attrition_train)))
+
+#confusionMatrix(attrition_knn,as.factor(attrition_test$Attrition)) #confusion matrix to show statistics on model
+
+```
+
+## Naive Bayes model
+
+Here is the Naive Bayes model
+```{r}
+# set naive bayes model
+attrition_nb <- naiveBayes(attrition_train[, c(18, 20, 24)], attrition_train$Attrition) #set Naive Bayes model with training set
+
+confusionMatrix(table(predict(attrition_nb, attrition_test[, c(18, 20, 24)]), attrition_test$Attrition)) #confusion matrix to show statistics on model
+
+```
+
+## Linear model
+
+Here is the Linear model, based on Monthly Income, Total Working Years and Percent Salary Hike (Multiple Linear Regression)
+```{r}
+
+salary_lm_model = lm(MonthlyIncome ~ TotalWorkingYears + PercentSalaryHike ,data=BusinessData) #set linear model
+lm_predict <- predict(salary_lm_model, BusinessData)
+
+difference <- lm_predict - BusinessData$MonthlyIncome
+
+#compute and show RMSE
+rmse <- 12*sqrt(mean(difference^2))
+rmse
+summary(salary_lm_model)
+
+confint(salary_lm_model, conf.level=0.95)
+
+#plot the model
+plot(salary_lm_model)
+
+
+```
