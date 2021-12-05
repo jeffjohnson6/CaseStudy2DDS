@@ -133,13 +133,15 @@ confusionMatrix(table(predict(attrition_nb, attrition_test[, c(18, 20, 24)]), at
 
 ## Linear model
 
-Here is the Linear model, based on Monthly Income, Total Working Years and Percent Salary Hike (Multiple Linear Regression)
+Here is the Linear model, based on Monthly Income, Total Working Years and Percent Salary Hike (Multiple Linear Regression).
+
+#Note that the below works in the .rmd file but appears drastically different in html
 ```{r}
 
 salary_lm_model = lm(MonthlyIncome ~ TotalWorkingYears + PercentSalaryHike ,data=BusinessData) #set linear model
 lm_predict <- predict(salary_lm_model, BusinessData)
 
-difference <- lm_predict - BusinessData$MonthlyIncome
+difference <- (lm_predict - BusinessData$MonthlyIncome)
 
 #compute and show RMSE
 rmse <- 12*sqrt(mean(difference^2))
