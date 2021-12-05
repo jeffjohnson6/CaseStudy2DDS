@@ -135,7 +135,7 @@ confusionMatrix(table(predict(attrition_nb, attrition_test[, c(18, 20, 24)]), at
 
 Here is the Linear model, based on Monthly Income, Total Working Years and Percent Salary Hike (Multiple Linear Regression).
 
-#Note that the below works in the .rmd file but appears drastically different in html
+##Note that the below works in the .rmd file but appears drastically different in knitted html. Please run in .Rmd
 ```{r}
 
 salary_lm_model = lm(MonthlyIncome ~ TotalWorkingYears + PercentSalaryHike ,data=BusinessData) #set linear model
